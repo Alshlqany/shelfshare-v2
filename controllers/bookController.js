@@ -48,13 +48,27 @@ export const getAllBooks = async (req, res) => {
 export const getBookById = async (req, res) => {
   try {
     const { bookId } = req.params;
-
-    const book = await Book.findById(bookId).select("-reviews");
+    const userId = req.user?.id;
+    let book = await Book.findById(bookId);
 
     if (!book) {
       return res.status(404).json({ message: "Book not found" });
     }
-    res.status(200).json(book);
+
+    const hasOrdered = await Order.findOne({
+      user: userId,
+      paymentStatus: "paid",
+      "books.book": bookId,
+    });
+
+    const alreadyReviewed = book.reviews.find(
+      (rev) => rev.user.toString() === userId.toString()
+    );
+
+    res.status(200).json({
+      ...book._doc,
+      canReview: Boolean(hasOrdered && !alreadyReviewed),
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Server error" });
