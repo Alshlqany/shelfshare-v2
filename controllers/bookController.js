@@ -4,6 +4,7 @@ import Order from "../models/Order.js";
 export const getAllBooks = async (req, res) => {
   try {
     const { page = 1, limit = 12, sort, search, ISBN, ...filters } = req.query;
+
     let mongoQuery = {};
     if (search) {
       mongoQuery.$text = { $search: search };
@@ -15,6 +16,10 @@ export const getAllBooks = async (req, res) => {
       mongoQuery[key] = filters[key];
     }
 
+    const skip = (page - 1) * limit;
+
+    const totalBooks = await Book.countDocuments(mongoQuery);
+
     let query = Book.find(mongoQuery).select("-reviews");
 
     if (sort) {
@@ -24,11 +29,17 @@ export const getAllBooks = async (req, res) => {
       query = query.sort("-createdAt");
     }
 
-    const skip = (page - 1) * limit;
-    query = query.skip(skip).limit(+limit);
-
+    query = query.skip(skip).limit(Number(limit));
     const books = await query;
-    res.status(200).json(books);
+
+    res.status(200).json({
+      books,
+      totalBooks,
+      totalPages: Math.ceil(totalBooks / limit),
+      currentPage: Number(page),
+      hasNextPage: skip + books.length < totalBooks,
+      hasPreviousPage: skip > 0,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
