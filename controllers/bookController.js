@@ -1,5 +1,6 @@
 import Book from "../models/Book.js";
 import Order from "../models/Order.js";
+import Favorite from "../models/Favorite.js";
 
 export const getAllBooks = async (req, res) => {
   const userId = req.user?.id;
@@ -55,7 +56,7 @@ export const getAllBooks = async (req, res) => {
       hasPreviousPage: skip > 0,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -90,7 +91,7 @@ export const getBookById = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
