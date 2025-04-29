@@ -7,13 +7,13 @@ import {
   addReview,
   getBookById,
 } from "../controllers/bookController.js";
-import { adminOnly, protect } from "../middlewares/authMiddleware.js";
+import { adminOnly, protect, setUser } from "../middlewares/authMiddleware.js";
 import upload from "../middlewares/upload.js";
 
 const bookRouter = express.Router();
 
-bookRouter.get("/", getAllBooks);
-bookRouter.get("/:bookId", getBookById);
+bookRouter.get("/", setUser, getAllBooks);
+bookRouter.get("/:bookId", setUser, getBookById);
 bookRouter.post("/", protect, adminOnly, upload.single("image"), addBook);
 bookRouter.patch(
   "/:id",
