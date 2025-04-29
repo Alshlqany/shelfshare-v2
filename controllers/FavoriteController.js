@@ -1,7 +1,7 @@
 import Favorite from "../models/Favorite.js";
 import Book from "../models/Book.js";
 
-export const addToFavoritelist = async (req, res) => {
+export const toggleFavorite = async (req, res) => {
   try {
     const { bookId } = req.body;
     const userId = req.user.id;
@@ -11,42 +11,23 @@ export const addToFavoritelist = async (req, res) => {
       return res.status(404).json({ message: "Book not found" });
     }
 
-    const favorite = await Favorite.create({ user: userId, book: bookId });
-    await Book.findByIdAndUpdate(bookId, { $inc: { favorites: 1 } });
+    const existingFavorite = await Favorite.findOne({ user: userId, book: bookId });
 
-    res.status(201).json({ message: "Book added to favoritelist", favorite });
-  } catch (error) {
-    if (error.code === 11000) {
-      return res
-        .status(400)
-        .json({ message: "The Book is Already in favoritelist" });
+    if (existingFavorite) {
+      
+      await Favorite.findByIdAndDelete(existingFavorite._id);
+      await Book.findByIdAndUpdate(bookId, { $inc: { favorites: -1 } });
+      return res.status(200).json({ message: "Removed from favorites", favorited: false });
+    } else {
+      const favorite = await Favorite.create({ user: userId, book: bookId });
+      await Book.findByIdAndUpdate(bookId, { $inc: { favorites: 1 } });
+      return res.status(201).json({ message: "Added to favorites", favorited: true, favorite });
     }
-    res.status(500).json({ message: "internal Server error" });
-  }
-};
-
-export const removeFromFavoritelist = async (req, res) => {
-  try {
-    const bookId = req.params.bookId;
-    const userId = req.user.id;
-
-    const favorite = await Favorite.findOneAndDelete({
-      user: userId,
-      book: bookId,
-    });
-    
-    if (!favorite)
-      return res
-        .status(404)
-        .json({ message: "Book not found in favoritelist" });
-
-    await Book.findByIdAndUpdate(bookId, { $inc: { favorites: -1 } });
-
-    res.json({ message: "Book removed from your favoritelist" });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 export const getFavoritelist = async (req, res) => {
   try {

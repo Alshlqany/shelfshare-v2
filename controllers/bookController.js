@@ -32,6 +32,19 @@ export const getAllBooks = async (req, res) => {
     query = query.skip(skip).limit(Number(limit));
     const books = await query;
 
+    if (userId) {
+      const favoriteDocs = await Favorite.find({
+        user: userId,
+        book: { $in: books.map((b) => b._id) },
+      });
+      const favSet = new Set(favoriteDocs.map((f) => f.book.toString()));
+
+      books = books.map((book) => ({
+        ...book._doc,
+        isFavorited: favSet.has(book._id.toString()),
+      }));
+    }
+
     res.status(200).json({
       books,
       totalBooks,
@@ -49,8 +62,8 @@ export const getBookById = async (req, res) => {
   try {
     const { bookId } = req.params;
     const userId = req.user?.id;
-    let book = await Book.findById(bookId);
 
+    let book = await Book.findById(bookId);
     if (!book) {
       return res.status(404).json({ message: "Book not found" });
     }
@@ -61,13 +74,18 @@ export const getBookById = async (req, res) => {
       "books.book": bookId,
     });
 
-    const alreadyReviewed = book.reviews.find(
-      (rev) => rev.user.toString() === userId.toString()
+    const userReview = book.reviews.find(
+      (rev) => rev.user.toString() === userId?.toString()
     );
+    const isFavorited = userId
+      ? await Favorite.exists({ user: userId, book: bookId })
+      : false;
 
     res.status(200).json({
       ...book._doc,
-      canReview: Boolean(hasOrdered && !alreadyReviewed),
+      canReview: Boolean(hasOrdered && !userReview),
+      yourRate: userReview?.rate || null,
+      isFavorited: Boolean(isFavorited),
     });
   } catch (error) {
     console.log(error);
