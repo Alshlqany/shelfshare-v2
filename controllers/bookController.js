@@ -32,7 +32,7 @@ export const getAllBooks = async (req, res) => {
     }
 
     query = query.skip(skip).limit(Number(limit));
-    const books = await query;
+    let books = await query;
 
     if (userId) {
       const favoriteDocs = await Favorite.find({
