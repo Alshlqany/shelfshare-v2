@@ -2,6 +2,7 @@ import Book from "../models/Book.js";
 import Order from "../models/Order.js";
 
 export const getAllBooks = async (req, res) => {
+  const userId = req.user?.id;
   try {
     const { page = 1, limit = 12, sort, search, ISBN, ...filters } = req.query;
 
