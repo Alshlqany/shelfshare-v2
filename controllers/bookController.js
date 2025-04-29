@@ -8,21 +8,14 @@ export const getAllBooks = async (req, res) => {
     const { page = 1, limit = 12, sort, search, ISBN, ...filters } = req.query;
 
     let mongoQuery = {};
-    if (search) {
-      mongoQuery.$text = { $search: search };
-    }
-    if (ISBN) {
-      mongoQuery.ISBN = ISBN;
-    }
-    for (const key in filters) {
-      mongoQuery[key] = filters[key];
-    }
+    if (search) mongoQuery.$text = { $search: search };
+    if (ISBN) mongoQuery.ISBN = ISBN;
+    for (const key in filters) mongoQuery[key] = filters[key];
 
     const skip = (page - 1) * limit;
-
     const totalBooks = await Book.countDocuments(mongoQuery);
 
-    let query = Book.find(mongoQuery).select("-reviews");
+    let query = Book.find(mongoQuery); 
 
     if (sort) {
       const sortBy = sort.split(",").join(" ");
@@ -34,18 +27,31 @@ export const getAllBooks = async (req, res) => {
     query = query.skip(skip).limit(Number(limit));
     let books = await query;
 
+    let favSet = new Set();
+    let ratesMap = new Map();
+
     if (userId) {
       const favoriteDocs = await Favorite.find({
         user: userId,
         book: { $in: books.map((b) => b._id) },
       });
-      const favSet = new Set(favoriteDocs.map((f) => f.book.toString()));
+      favSet = new Set(favoriteDocs.map((f) => f.book.toString()));
 
-      books = books.map((book) => ({
-        ...book._doc,
-        isFavorited: favSet.has(book._id.toString()),
-      }));
+      books.forEach((book) => {
+        const userReview = book.reviews.find(
+          (r) => r.user.toString() === userId
+        );
+        if (userReview) {
+          ratesMap.set(book._id.toString(), userReview.rate);
+        }
+      });
     }
+
+    books = books.map((book) => ({
+      ...book._doc,
+      isFavorited: favSet.has(book._id.toString()),
+      myReview: ratesMap.get(book._id.toString()) || 0,
+    }));
 
     res.status(200).json({
       books,
