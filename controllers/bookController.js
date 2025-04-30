@@ -1,6 +1,7 @@
 import Book from "../models/Book.js";
 import Order from "../models/Order.js";
 import Favorite from "../models/Favorite.js";
+
 export const getAllBooks = async (req, res) => {
   const userId = req.user?.id;
 
@@ -10,8 +11,6 @@ export const getAllBooks = async (req, res) => {
       limit = 12,
       sort,
       search,
-      mainCategory,
-      subCategory,
       minPrice,
       maxPrice,
       ...otherFilters
@@ -19,14 +18,24 @@ export const getAllBooks = async (req, res) => {
 
     let mongoQuery = {};
 
-    // Case-insensitive text search on title and description
+    // Exact match on mainCategory if provided
+    if (otherFilters.mainCategory) {
+      mongoQuery.mainCategory = otherFilters.mainCategory;
+      delete otherFilters.mainCategory;
+    }
+
+    // Exact match on subCategory if provided
+    if (otherFilters.subCategory) {
+      mongoQuery.subCategory = otherFilters.subCategory;
+      delete otherFilters.subCategory;
+    }
+
+    // Case-insensitive text search (excluding mainCategory and subCategory)
     if (search) {
       mongoQuery.$or = [
         { title: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
         { ISBN: { $regex: search, $options: "i" } },
-        { mainCategory: { $regex: search, $options: "i" } },
-        { subCategory: { $regex: search, $options: "i" } },
         { author: { $regex: search, $options: "i" } },
       ];
     }
@@ -38,13 +47,12 @@ export const getAllBooks = async (req, res) => {
       if (maxPrice) mongoQuery.price.$lte = Number(maxPrice);
     }
 
-    // Apply any additional filters as exact matches
+    // Apply any remaining filters as exact matches
     for (const key in otherFilters) {
       mongoQuery[key] = otherFilters[key];
     }
 
     const skip = (page - 1) * limit;
-
     const totalBooks = await Book.countDocuments(mongoQuery);
 
     let query = Book.find(mongoQuery).select("-reviews");
