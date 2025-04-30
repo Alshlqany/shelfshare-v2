@@ -1,6 +1,6 @@
 import Book from "../models/Book.js";
 import Order from "../models/Order.js";
-
+import Favorite from "../models/Favorite.js";
 export const getAllBooks = async (req, res) => {
   const userId = req.user?.id;
 
@@ -10,9 +10,6 @@ export const getAllBooks = async (req, res) => {
       limit = 12,
       sort,
       search,
-      ISBN,
-      title,
-      description,
       mainCategory,
       subCategory,
       minPrice,
@@ -30,18 +27,9 @@ export const getAllBooks = async (req, res) => {
         { ISBN: { $regex: search, $options: "i" } },
         { mainCategory: { $regex: search, $options: "i" } },
         { subCategory: { $regex: search, $options: "i" } },
+        { author: { $regex: search, $options: "i" } },
       ];
     }
-
-    // Optional individual filters with case-insensitive matching
-    if (ISBN) mongoQuery.ISBN = { $regex: `^${ISBN}$`, $options: "i" };
-    if (title) mongoQuery.title = { $regex: title, $options: "i" };
-    if (description)
-      mongoQuery.description = { $regex: description, $options: "i" };
-    if (mainCategory)
-      mongoQuery.mainCategory = { $regex: `^${mainCategory}$`, $options: "i" };
-    if (subCategory)
-      mongoQuery.subCategory = { $regex: `^${subCategory}$`, $options: "i" };
 
     // Price range filter
     if (minPrice || maxPrice) {
