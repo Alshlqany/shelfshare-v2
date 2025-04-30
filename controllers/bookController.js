@@ -1,21 +1,65 @@
 import Book from "../models/Book.js";
 import Order from "../models/Order.js";
-import Favorite from "../models/Favorite.js";
 
 export const getAllBooks = async (req, res) => {
   const userId = req.user?.id;
+
   try {
-    const { page = 1, limit = 12, sort, search, ISBN, ...filters } = req.query;
+    const {
+      page = 1,
+      limit = 12,
+      sort,
+      search,
+      ISBN,
+      title,
+      description,
+      mainCategory,
+      subCategory,
+      minPrice,
+      maxPrice,
+      ...otherFilters
+    } = req.query;
 
     let mongoQuery = {};
-    if (search) mongoQuery.$text = { $search: search };
-    if (ISBN) mongoQuery.ISBN = ISBN;
-    for (const key in filters) mongoQuery[key] = filters[key];
+
+    // Case-insensitive text search on title and description
+    if (search) {
+      mongoQuery.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { ISBN: { $regex: search, $options: "i" } },
+        { mainCategory: { $regex: search, $options: "i" } },
+        { subCategory: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Optional individual filters with case-insensitive matching
+    if (ISBN) mongoQuery.ISBN = { $regex: `^${ISBN}$`, $options: "i" };
+    if (title) mongoQuery.title = { $regex: title, $options: "i" };
+    if (description)
+      mongoQuery.description = { $regex: description, $options: "i" };
+    if (mainCategory)
+      mongoQuery.mainCategory = { $regex: `^${mainCategory}$`, $options: "i" };
+    if (subCategory)
+      mongoQuery.subCategory = { $regex: `^${subCategory}$`, $options: "i" };
+
+    // Price range filter
+    if (minPrice || maxPrice) {
+      mongoQuery.price = {};
+      if (minPrice) mongoQuery.price.$gte = Number(minPrice);
+      if (maxPrice) mongoQuery.price.$lte = Number(maxPrice);
+    }
+
+    // Apply any additional filters as exact matches
+    for (const key in otherFilters) {
+      mongoQuery[key] = otherFilters[key];
+    }
 
     const skip = (page - 1) * limit;
+
     const totalBooks = await Book.countDocuments(mongoQuery);
 
-    let query = Book.find(mongoQuery); 
+    let query = Book.find(mongoQuery).select("-reviews");
 
     if (sort) {
       const sortBy = sort.split(",").join(" ");
@@ -27,31 +71,19 @@ export const getAllBooks = async (req, res) => {
     query = query.skip(skip).limit(Number(limit));
     let books = await query;
 
-    let favSet = new Set();
-    let ratesMap = new Map();
-
+    // Handle user favorites
     if (userId) {
       const favoriteDocs = await Favorite.find({
         user: userId,
         book: { $in: books.map((b) => b._id) },
       });
-      favSet = new Set(favoriteDocs.map((f) => f.book.toString()));
+      const favSet = new Set(favoriteDocs.map((f) => f.book.toString()));
 
-      books.forEach((book) => {
-        const userReview = book.reviews.find(
-          (r) => r.user.toString() === userId
-        );
-        if (userReview) {
-          ratesMap.set(book._id.toString(), userReview.rate);
-        }
-      });
+      books = books.map((book) => ({
+        ...book._doc,
+        isFavorited: favSet.has(book._id.toString()),
+      }));
     }
-
-    books = books.map((book) => ({
-      ...book._doc,
-      isFavorited: favSet.has(book._id.toString()),
-      myReview: ratesMap.get(book._id.toString()) || 0,
-    }));
 
     res.status(200).json({
       books,
@@ -62,7 +94,8 @@ export const getAllBooks = async (req, res) => {
       hasPreviousPage: skip > 0,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Get books error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -97,7 +130,7 @@ export const getBookById = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
