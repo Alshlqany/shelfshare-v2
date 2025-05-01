@@ -14,8 +14,8 @@ import upload from "../middlewares/upload.js";
 const bookRouter = express.Router();
 
 bookRouter.get("/", setUser, getAllBooks);
-bookRouter.get("/:bookId", setUser, getBookById);
 bookRouter.get("/categories", getAllSubCategories);
+bookRouter.get("/:bookId", setUser, getBookById);
 bookRouter.post("/", protect, adminOnly, upload.single("image"), addBook);
 bookRouter.patch(
   "/:id",
