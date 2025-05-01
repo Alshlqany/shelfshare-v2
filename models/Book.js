@@ -7,7 +7,7 @@ const bookSchema = new mongoose.Schema(
     mainCategory: {
       type: String,
       required: true,
-      enum: ["English", "Arabic", "Kids-Arabic", "Kids-English"],
+      enum: ["English", "Arabic", "Kids"],
     },
     subCategory: { type: String, required: true },
     image: { type: String, required: true },

@@ -6,6 +6,7 @@ import {
   deleteBook,
   addReview,
   getBookById,
+  getAllSubCategories,
 } from "../controllers/bookController.js";
 import { adminOnly, protect, setUser } from "../middlewares/authMiddleware.js";
 import upload from "../middlewares/upload.js";
@@ -14,6 +15,7 @@ const bookRouter = express.Router();
 
 bookRouter.get("/", setUser, getAllBooks);
 bookRouter.get("/:bookId", setUser, getBookById);
+bookRouter.get("/categories", getAllSubCategories);
 bookRouter.post("/", protect, adminOnly, upload.single("image"), addBook);
 bookRouter.patch(
   "/:id",

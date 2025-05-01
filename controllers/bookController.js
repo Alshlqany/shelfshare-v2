@@ -244,3 +244,15 @@ export const addReview = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+export const getAllSubCategories = async (req, res) => {
+  try {
+    const subCategories = await Book.distinct("subCategory");
+    res.status(200).json({ subCategories });
+  } catch (error) {
+    console.error("Error getting subcategories:", error);
+    res
+      .status(500)
+      .json({ message: "Server error while fetching subcategories" });
+  }
+};
