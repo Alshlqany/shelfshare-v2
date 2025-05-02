@@ -133,7 +133,7 @@ export const getOrderById = async (req, res) => {
   try {
     const order = await Order.findById(req.params.orderId)
       .populate("user", "name email address")
-      .populate("books.book", "title price image");
+      .populate("books.book", "title price image reviews");
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -143,7 +143,22 @@ export const getOrderById = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    res.status(200).json(order);
+    const updatedBooks = order.books.map((item) => {
+      const book = item.book;
+      const userReview = book.reviews?.find(
+        (r) => r.user.toString() === req.user.id
+      );
+      return {
+        ...item.toObject(),
+        book,
+        userRating: userReview ? userReview.rate : null,
+      };
+    });
+
+    res.status(200).json({
+      ...order.toObject(),
+      books: updatedBooks,
+    });
   } catch (error) {
     res.status(500).json({ message: "Failed to get order" });
   }

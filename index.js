@@ -33,11 +33,7 @@ app.use("/api/order", orderRoutes);
 app.use("/api/favorite", favoriteRouter);
 app.use("/api/stats", statsRoutes);
 
-app.get("/success", (_, res) => {
-  res.send("success");
-});
-
-app.get("/", (_, res) => {
+app.get("/api", (_, res) => {
   res.send("API IS RUNNING");
 });
 
