@@ -42,12 +42,12 @@ export const createStripeSession = async (req, res) => {
 
       line_items.push({
         price_data: {
-          currency: "usd",
+          currency: "egp",
           product_data: {
             name: book.title,
             images: [book.image],
           },
-          unit_amount: book.price * 2, // EGP to cents conversion approx
+          unit_amount: Math.round(book.price * 100),
         },
         quantity: qty,
       });
