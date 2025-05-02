@@ -86,8 +86,6 @@ export const getAllBooks = async (req, res) => {
       totalBooks,
       totalPages: Math.ceil(totalBooks / limit),
       currentPage: Number(page),
-      hasNextPage: skip + books.length < totalBooks,
-      hasPreviousPage: skip > 0,
     });
   } catch (error) {
     console.error("Get books error:", error);
