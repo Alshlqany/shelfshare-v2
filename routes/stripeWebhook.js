@@ -44,6 +44,7 @@ stripeWebhook.post("/stripe", async (req, res) => {
         }
       }
     } catch (error) {
+      console.log("Error updating order or books:", error);
       return res.status(500).send("Failed to update order or books");
     }
   }
