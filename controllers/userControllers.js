@@ -14,17 +14,13 @@ export const getMe = async (req, res) => {
 
 export const editProfile = async (req, res) => {
   try {
-    const allowedUpdates = ["name", "email", "address", "phone"];
+    const allowedUpdates = ["name",  "address", "phone"];
     const updates = {};
 
     for (let key of allowedUpdates) {
       if (req.body[key]) {
         updates[key] = req.body[key];
       }
-    }
-
-    if (updates.email) {
-      updates.isVerified = false;
     }
 
     const user = await User.findByIdAndUpdate(req.user.id, updates, {
