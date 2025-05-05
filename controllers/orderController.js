@@ -92,16 +92,19 @@ export const getAllOrders = async (req, res) => {
       maxTotal,
       admin,
     } = req.query;
+
     const skip = (page - 1) * limit;
     const query = {};
 
-    if (admin !== "true") {
+    const isAdmin = req.user.role === "admin" && admin === "true";
+
+    if (!isAdmin) {
       query.user = req.user.id;
     }
-    else if (req.user.role === "admin" && userId) {
+    if (isAdmin && userId) {
       query.user = userId;
     }
-    
+
     if (status) {
       query.paymentStatus = status;
     }
@@ -111,12 +114,35 @@ export const getAllOrders = async (req, res) => {
       if (minTotal) query.totalAmount.$gte = Number(minTotal);
       if (maxTotal) query.totalAmount.$lte = Number(maxTotal);
     }
+
     const orders = await Order.find(query)
       .populate("user", "name email address phone")
-      .populate("books.book", "title price image")
+      .populate("books.book", "title price image reviews")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
+
+    if (!isAdmin) {
+      const userIdStr = req.user.id.toString();
+      for (const order of orders) {
+        order.books = order.books.map((item) => {
+          const book = item.book;
+          const userReview = book?.reviews?.find(
+            (rev) => rev.user?.toString() === userIdStr
+          );
+
+          return {
+            ...item,
+            book: {
+              ...book,
+              reviews: null,
+              userRating: userReview?.rate || null,
+            },
+          };
+        });
+      }
+    }
 
     const total = await Order.countDocuments(query);
 
@@ -127,6 +153,7 @@ export const getAllOrders = async (req, res) => {
       totalOrders: total,
     });
   } catch (error) {
+    console.error("Error in getAllOrders:", error);
     res.status(500).json({ message: error.message });
   }
 };
