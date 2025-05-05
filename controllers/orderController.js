@@ -90,14 +90,18 @@ export const getAllOrders = async (req, res) => {
       userId,
       minTotal,
       maxTotal,
+      admin,
     } = req.query;
     const skip = (page - 1) * limit;
     const query = {};
-    query.user = req.user.id;
 
-    if (req.user.role === "admin" && userId) {
+    if (admin !== "true") {
+      query.user = req.user.id;
+    }
+    else if (req.user.role === "admin" && userId) {
       query.user = userId;
     }
+    
     if (status) {
       query.paymentStatus = status;
     }
