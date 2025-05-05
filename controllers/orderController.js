@@ -93,10 +93,8 @@ export const getAllOrders = async (req, res) => {
     } = req.query;
     const skip = (page - 1) * limit;
     const query = {};
+    query.user = req.user.id;
 
-    if (req.user.role !== "admin") {
-      query.user = req.user.id;
-    }
     if (req.user.role === "admin" && userId) {
       query.user = userId;
     }
@@ -110,7 +108,7 @@ export const getAllOrders = async (req, res) => {
       if (maxTotal) query.totalAmount.$lte = Number(maxTotal);
     }
     const orders = await Order.find(query)
-      .populate("user", "name email address")
+      .populate("user", "name email address phone")
       .populate("books.book", "title price image")
       .sort({ createdAt: -1 })
       .skip(skip)
